@@ -44,5 +44,5 @@ architecture Behavioral of sync_unit is
 begin
     HSYNC <= '0' when h_counter="011010010" else '1' when h_counter="011110010"; --flip at 210 and 242
     VSYNC <= '0' when v_counter="1001011001" else '1' when v_counter="1001011101"; --flip at 601 and 605
-    mem_enable <= '1' when h_counter="000000000" else '0' when h_counter="11001000"; --ask the memory for pixels between 0 and 199 (stop at 200)
+    mem_enable <= '1' when h_counter="000000000" else '0' when h_counter="011001000"; --ask the memory for pixels between 0 and 199 (stop at 200)
 end Behavioral;

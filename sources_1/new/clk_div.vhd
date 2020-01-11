@@ -45,7 +45,7 @@ signal clk : STD_LOGIC := '0';
 
 begin
     clk_out<=clk;
-    process(clk_in)
+    process(clk_in,enable)
     begin
         if enable='1' AND rising_edge(clk_in) then
             if counter=(div_amount-1) then

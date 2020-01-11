@@ -48,7 +48,7 @@ signal value : unsigned (output_size-1 downto 0) := (others=>'0'); --set this to
 
 begin
     output<=STD_LOGIC_VECTOR(value) when reset='0' else (others=>'0');
-    process(clk)
+    process(clk,enable,reset)
     begin
         if enable='1' AND rising_edge(clk) AND NOT(reset='1') then
             if value=(output_limit-1) then
