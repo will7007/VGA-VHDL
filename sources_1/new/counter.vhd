@@ -35,28 +35,30 @@ entity counter is
     Generic (output_size : integer; --size of the output bus in bits
              output_limit : integer); --numerical logical maximum of the counter (no -1)
     Port ( clk : in STD_LOGIC;
-           enable : in STD_LOGIC := '1'; --both these control signals are active high
+           enable : in STD_LOGIC := '1';
            reset : in STD_LOGIC := '0';
            output : out STD_LOGIC_VECTOR (output_size-1 downto 0);
            overflow : out STD_LOGIC := '0'); --active high
 end counter;
 
-architecture Behavioral of counter is --really my clock divider is just a simplified version of the counter
+architecture Behavioral of counter is
 
 signal value : unsigned (output_size-1 downto 0) := (others=>'0'); --set this to the output_size instead of the output limit just in case
 --signal sig : STD_LOGIC_VECTOR (output_size-1 downto 0) := (others=>'0');
 
 begin
-    output<=STD_LOGIC_VECTOR(value) when reset='0' else (others=>'0');
+    output<=STD_LOGIC_VECTOR(value);
     process(clk,enable,reset)
     begin
-        if enable='1' AND rising_edge(clk) AND NOT(reset='1') then
-            if value=(output_limit-1) then
+        if rising_edge(clk) then
+            if reset='1' then
+					 value <= (others=>'0');
+            elsif enable='1' AND value=(output_limit-1) then
                 value <= (others=>'0');
-                overflow<='1';
-            else 
+                overflow <= '1';
+            elsif enable='1' then
                 value <= value + 1;
-                overflow<='0';
+                overflow <= '0';
             end if;
         end if;
     end process;

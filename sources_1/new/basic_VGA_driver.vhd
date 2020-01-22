@@ -2,39 +2,6 @@
 -- Company: 
 -- Engineer: 
 -- 
--- Create Date: 12/16/2019 10:19:56 PM
--- Design Name: 
--- Module Name: basic_VGA_driver - Behavioral
--- Project Name: 
--- Target Devices: 
--- Tool Versions: 
--- Description: 
--- 
--- Dependencies: 
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
--- 
-----------------------------------------------------------------------------------
-
-
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
-
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx leaf cells in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
-
-----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
 -- Create Date: 12/16/2019 10:03:20 PM
 -- Design Name: 
 -- Module Name: VGA_driver - Behavioral
@@ -111,59 +78,75 @@ end component;
 component ROMTest IS
 	PORT
 	(
-		address		: IN STD_LOGIC_VECTOR (11 DOWNTO 0);
+		address		: IN STD_LOGIC_VECTOR (14 DOWNTO 0);
 		clken		: IN STD_LOGIC  := '1';
 		clock		: IN STD_LOGIC  := '1';
 		q		: OUT STD_LOGIC_VECTOR (2 DOWNTO 0)
 	);
 END component;
 
+--I tried making a counter which flipped on both the rising and falling edge, but it didn't work out
+--component slow_counter is
+--    Port ( clk : in STD_LOGIC := '0';
+--			  reset : in STD_LOGIC :='0';
+--           address : out STD_LOGIC_VECTOR (14 downto 0));
+--end component;
+
 signal clk_sig : STD_LOGIC := '0';
 
-signal h_counter : STD_LOGIC_VECTOR (10 downto 0);
-signal v_counter : STD_LOGIC_VECTOR (9 downto 0);
-signal v_counter_clk : STD_LOGIC := '0';
+signal h_counter : unsigned (10 downto 0) := (others=>'0');
+signal v_counter : unsigned (9 downto 0) := (others=>'0');
 
---signal memory_address_counter_sig: STD_LOGIC_VECTOR (21 downto 0) := (others=>'0');
-signal memory_address : STD_LOGIC_VECTOR (11 downto 0) := (others=>'0');
-signal memory_enable : STD_LOGIC := '1';
+signal v_counter_clk : STD_LOGIC := '0';
+signal new_frame : STD_LOGIC :='0';
+
+--signal memory_address_counter_sig: STD_LOGIC_VECTOR (14 downto 0) := (others=>'0'); --added
+
+signal memory_address : STD_LOGIC_VECTOR (14 downto 0) := (others=>'0');
+signal memory_enable : STD_LOGIC := '0';
 signal color_intermediate : STD_LOGIC_VECTOR (2 downto 0) := "000";
 
---signal VSYNC_signal : STD_LOGIC := '0'; --used to let the colored bars know when to move NEW
---signal motion_signal : STD_LOGIC_VECTOR (7 downto 0) := "00000000";
---signal adder_signal :STD_LOGIC_VECTOR (5 downto 0) := "000000";
+signal memory_counter_start : unsigned (15 downto 0) := (others=>'0');
+
+signal HSYNC_signal : STD_LOGIC := '1';
+signal VSYNC_signal : STD_LOGIC := '1';
 
 begin
---    clock: clk_div port map(clk_in=>clk,clk_out=>clk_sig); --clock divider from 50 MHz to 10 Mhz
+	PLL: Clk40 port map(inclk0=>clk,c0=>clk_sig);
+	 
+	h_pixel_counter: counter generic map(output_size=>11,output_limit=>1056) --counter for the horizontal beam position
+							  port map(clk=>clk_sig,unsigned(output)=>h_counter,overflow=>v_counter_clk);
+	v_pixel_counter: counter generic map(output_size=>10,output_limit=>628) --counter for the vertical beam position (CHANGED FROM 628 TO 609)
+							  port map(clk=>v_counter_clk,unsigned(output)=>v_counter,overflow=>new_frame); --advanced by the overflowing of the horizontal beam position
+	 
+	--memory_address_counter: counter generic map(output_size=>19,output_limit=>524272) --counter for the memory byte (added)
+	--                         port map(clk=>clk_sig,output=>memory_address_counter_sig,enable=>memory_enable,reset=>NOT(VSYNC_signal));
 
-	 PLL: Clk40 port map(inclk0=>clk,c0=>clk_sig);
-    
---    h_pixel_counter: counter generic map(output_size=>9,output_limit=>264) --counter for the horizontal beam position (old)
---                             port map(clk=>clk_sig,output=>h_counter,overflow=>v_counter_clk);
-
-    h_pixel_counter: counter generic map(output_size=>11,output_limit=>1056) --counter for the horizontal beam position
-                             port map(clk=>clk_sig,output=>h_counter,overflow=>v_counter_clk);
-    v_pixel_counter: counter generic map(output_size=>10,output_limit=>628) --counter for the vertical beam position
-                             port map(clk=>v_counter_clk,output=>v_counter); --advanced by the overflowing of the horizontal beam position
+	--memory_address_counter: slow_counter port map(clk=>memory_counter_advance,address=>memory_address_counter_sig,reset=>NOT(VSYNC_signal));
 	 
-	 --memory_address_counter: counter generic map(output_size=>22,output_limit=>480000) --counter for the horizontal beam position
-    --                         port map(clk=>clk_sig,output=>memory_address_counter_sig,enable=>memory_enable);
-                         
-    sync_component: sync_unit port map(h_counter=>h_counter,v_counter=>v_counter,HSYNC=>HSYNC,VSYNC=>VSYNC,mem_enable=>memory_enable); --unit which controls when the HSYNC and VSYNC pulses happen
+	sync_component: sync_unit port map(h_counter=>STD_LOGIC_VECTOR(h_counter),v_counter=>STD_LOGIC_VECTOR(v_counter),HSYNC=>HSYNC_signal,VSYNC=>VSYNC_signal,mem_enable=>memory_enable); --unit which controls when the HSYNC and VSYNC pulses happen
 	 
-	 ROM: ROMTest port map(address=>memory_address,clock=>clk_sig,q=>color_intermediate,clken=>memory_enable);
+	ROM: ROMTest port map(address=>memory_address,clock=>clk_sig,q=>color_intermediate,clken=>memory_enable);
 	 
---	 motion: counter generic map(output_size=>8,output_limit=>200) --NEW
---						  port map(clk=>VSYNC_signal,output=>motion_signal);
-
-	 --memory_address (9 downto 0) <= h_counter (9 downto 0);
-	 --memory_address (11 downto 10) <= v_counter (2 downto 1);
-	 
-	  memory_address (4 downto 0) <= h_counter (9 downto 5) when memory_enable = '1' else "00000" when memory_enable = '0'; --0 to 24 x (0 to 799, 0 to 18 in hex) 25
-	  memory_address (11 downto 5) <= v_counter (9 downto 3) when memory_enable = '1' else "0000000" when memory_enable = '0'; --0 to 37 y (0 to 599) 38
-	 --The amount of unused portion in the memory is determined by the LSB place of the selected portion of the v_counter
+	--memory_address (4 downto 0) <= h_counter (9 downto 5) when memory_enable = '1' else "00000" when memory_enable = '0'; --0 to 24 x (0 to 799, 0 to 18 in hex) 25
+	--memory_address (11 downto 5) <= v_counter (9 downto 3) when memory_enable = '1' else "0000000" when memory_enable = '0'; --0 to 37 y (0 to 599) 38
+	--The amount of unused portion in the memory is determined by the LSB place of the selected portion of the v_counter
 	  
-	 --memory_address <= memory_address_counter_sig (21 downto 10) when memory_enable = '1' else (others=>'0') when memory_enable = '0';
+	memory_address <= STD_LOGIC_VECTOR(memory_counter_start (14 downto 0) + h_counter (10 downto 2)) when memory_enable = '1' else (others=>'0') when memory_enable = '0';
 	 
-	 color <= color_intermediate when memory_enable = '1' else "000" when memory_enable = '0'; --stop random things from being on the screen after the memory is off
+	VSYNC <= VSYNC_signal;
+	HSYNC <= HSYNC_signal; --when VSYNC_signal='1' else '1'; 
+	
+	color <= color_intermediate when memory_enable = '1' else "000" when memory_enable = '0'; --stop random things from being on the screen after the memory is off
+ 
+	process(HSYNC_signal,memory_counter_start,v_counter)
+	begin
+		if falling_edge(HSYNC_signal) then
+			memory_counter_start<=(v_counter (9 downto 2) * 200);
+		end if;
+	end process;
+
+	--memory_counter_advance <= '1' when (h_counter (3 downto 0) = "1111" AND memory_enable='1') else '0'; --when the counter is about to flip h_counter (5) to something new, change the address counter (must have the memory_enable here or problems arise)
+	--5 downto 0 means we care about the 6th bit, which is 64, thus 64 horizontal pixles pass before we load in a new color
+	--3 downto 0 means that each color takes up 16 pixels
 end Behavioral;

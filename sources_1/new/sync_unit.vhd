@@ -36,13 +36,14 @@ entity sync_unit is
            v_counter : in STD_LOGIC_VECTOR (9 downto 0);
            HSYNC : out STD_LOGIC := '1'; --these sync signals are normally high and asserted low during the sync pulse
            VSYNC : out STD_LOGIC := '1';
-           mem_enable : out STD_LOGIC := '1'); --active low?
+           mem_enable : out STD_LOGIC := '1');
 end sync_unit;
 
 architecture Behavioral of sync_unit is
-
+signal v_enable : STD_LOGIC := '1';
 begin
     HSYNC <= '0' when h_counter="01101001000" else '1' when h_counter="01111001000"; --flip at 840 and 968
     VSYNC <= '0' when v_counter="1001011001" else '1' when v_counter="1001011101"; --flip at 601 and 605
-    mem_enable <= '1' when h_counter="00000000000" else '0' when h_counter="01100011111"; --ask the memory for pixels between 0 and 799 (stop at 800)
+    mem_enable <= '1' when h_counter="00000000000" AND v_enable='1' else '0' when h_counter="01100011111"; --ask the memory for pixels between 0 and 799 (stop at 800) CHANGED 
+	 v_enable <= '1' when v_counter="0000000000" else '0' when v_counter="1001011000"; --CHANGED
 end Behavioral;
