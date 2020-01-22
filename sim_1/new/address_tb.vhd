@@ -24,7 +24,7 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
+use IEEE.NUMERIC_STD.ALL;
 
 -- Uncomment the following library declaration if instantiating
 -- any Xilinx leaf cells in this code.
@@ -42,24 +42,26 @@ component basic_VGA_driver is
            color : out STD_LOGIC_VECTOR (2 downto 0) := "000"; --RGB
            HSYNC : out STD_LOGIC := '1';
            VSYNC : out STD_LOGIC := '1';
-           address : out STD_LOGIC_VECTOR (11 downto 0));
+           v_counter_out : out unsigned (9 downto 0) := (others=>'0');
+           address : out STD_LOGIC_VECTOR (14 downto 0));
 end component;
 
 signal clk : STD_LOGIC := '0';
 signal color : STD_LOGIC_VECTOR (2 downto 0) := "000"; 
 signal HSYNC : STD_LOGIC := '1';
 signal VSYNC : STD_LOGIC := '1';
-signal address : STD_LOGIC_VECTOR (11 downto 0) := (others=>'0');           
+signal address : STD_LOGIC_VECTOR (14 downto 0) := (others=>'0');
+signal v_counter_out : unsigned (9 downto 0) := (others=>'0');           
            
 begin
-    uut: basic_VGA_driver port map(clk=>clk,color=>color,HSYNC=>HSYNC,VSYNC=>VSYNC,address=>address);
+    uut: basic_VGA_driver port map(clk=>clk,color=>color,HSYNC=>HSYNC,VSYNC=>VSYNC,address=>address,v_counter_out=>v_counter_out);
     process
         begin
             for i in 0 to 5000 loop
                 clk<='1';
-                wait for 10ps;
+                wait for 12.5ns;
                 clk<='0';
-                wait for 10ps;
+                wait for 12.5ns;
             end loop;
         end process;
     
